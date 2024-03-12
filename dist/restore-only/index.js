@@ -57728,7 +57728,7 @@ exports.isFeatureAvailable = isFeatureAvailable;
  * @param enableCrossOsArchive an optional boolean enabled to restore on windows any cache created on any platform
  * @returns string returns the key for the cache hit, otherwise returns undefined
  */
-function restoreCache(paths, primaryKey, repo_id, owner_id, restoreKeys, options, enableCrossOsArchive = false) {
+function restoreCache(paths, primaryKey, restoreKeys, options, enableCrossOsArchive = false) {
     return __awaiter(this, void 0, void 0, function* () {
         checkPaths(paths);
         restoreKeys = restoreKeys || [];
@@ -57745,9 +57745,9 @@ function restoreCache(paths, primaryKey, repo_id, owner_id, restoreKeys, options
         let archivePath = '';
         try {
             // path are needed to compute version
-            const cacheEntry = yield cacheHttpClient.getCacheEntry(keys, paths, repo_id, owner_id, {
+            const cacheEntry = yield cacheHttpClient.getCacheEntry(keys, paths, {
                 compressionMethod,
-                enableCrossOsArchive,
+                enableCrossOsArchive
             });
             if (!(cacheEntry === null || cacheEntry === void 0 ? void 0 : cacheEntry.archiveLocation)) {
                 // Cache not found
@@ -57760,7 +57760,7 @@ function restoreCache(paths, primaryKey, repo_id, owner_id, restoreKeys, options
             archivePath = path.join(yield utils.createTempDirectory(), utils.getCacheFileName(compressionMethod));
             core.debug(`Archive Path: ${archivePath}`);
             // Download the cache from the cache entry
-            yield cacheHttpClient.downloadCache(cacheEntry.archiveLocation, archivePath, repo_id, owner_id, options);
+            yield cacheHttpClient.downloadCache(cacheEntry.archiveLocation, archivePath, options);
             if (core.isDebug()) {
                 yield (0, tar_1.listTar)(archivePath, compressionMethod);
             }
@@ -57802,7 +57802,7 @@ exports.restoreCache = restoreCache;
  * @param options cache upload options
  * @returns number returns cacheId if the cache was saved successfully and throws an error if save fails
  */
-function saveCache(paths, key, repo_id, owner_id, options, enableCrossOsArchive = false) {
+function saveCache(paths, key, options, enableCrossOsArchive = false) {
     var _a, _b, _c, _d, _e;
     return __awaiter(this, void 0, void 0, function* () {
         checkPaths(paths);
@@ -57831,7 +57831,7 @@ function saveCache(paths, key, repo_id, owner_id, options, enableCrossOsArchive 
                 throw new Error(`Cache size of ~${Math.round(archiveFileSize / (1024 * 1024))} MB (${archiveFileSize} B) is over the 10GB limit, not saving cache.`);
             }
             core.debug('Reserving Cache');
-            const reserveCacheResponse = yield cacheHttpClient.reserveCache(key, paths, repo_id, owner_id, {
+            const reserveCacheResponse = yield cacheHttpClient.reserveCache(key, paths, {
                 compressionMethod,
                 enableCrossOsArchive,
                 cacheSize: archiveFileSize
@@ -57846,7 +57846,7 @@ function saveCache(paths, key, repo_id, owner_id, options, enableCrossOsArchive 
                 throw new ReserveCacheError(`Unable to reserve cache with key ${key}, another job may be creating this cache. More details: ${(_e = reserveCacheResponse === null || reserveCacheResponse === void 0 ? void 0 : reserveCacheResponse.error) === null || _e === void 0 ? void 0 : _e.message}`);
             }
             core.debug(`Saving Cache (ID: ${cacheId})`);
-            yield cacheHttpClient.saveCache(cacheId, archivePath, repo_id, owner_id, options);
+            yield cacheHttpClient.saveCache(cacheId, archivePath, options);
         }
         catch (error) {
             const typedError = error;
@@ -57915,7 +57915,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.saveCache = exports.reserveCache = exports.downloadCache = exports.getCacheEntry = exports.getCacheVersion = void 0;
+exports.saveCache = exports.reserveCache = exports.downloadCache = exports.getCacheEntry = exports.getCacheVersion = exports.createHttpClient = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const http_client_1 = __nccwpck_require__(6255);
 const auth_1 = __nccwpck_require__(5526);
@@ -57952,6 +57952,7 @@ function createHttpClient() {
     const bearerCredentialHandler = new auth_1.BearerCredentialHandler(token);
     return new http_client_1.HttpClient('actions/cache', [bearerCredentialHandler], getRequestOptions());
 }
+exports.createHttpClient = createHttpClient;
 function getCacheVersion(paths, compressionMethod, enableCrossOsArchive = false) {
     // don't pass changes upstream
     const components = paths.slice();
@@ -57969,17 +57970,18 @@ function getCacheVersion(paths, compressionMethod, enableCrossOsArchive = false)
     return crypto.createHash('sha256').update(components.join('|')).digest('hex');
 }
 exports.getCacheVersion = getCacheVersion;
-function getCacheEntry(keys, paths, repo_id, owner_id, options) {
+function getCacheEntry(keys, paths, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const httpClient = createHttpClient();
         const version = getCacheVersion(paths, options === null || options === void 0 ? void 0 : options.compressionMethod, options === null || options === void 0 ? void 0 : options.enableCrossOsArchive);
-        const resource = `cache?keys=${encodeURIComponent(keys.join(','))}&version=${version}&repo_id=${repo_id}&owner_id=${owner_id}`;
+        const resource = `cache?keys=${encodeURIComponent(keys.join(','))}&version=${version}`;
+        core.info("!!!!!!!!!!!!!!!!!!!!!!!!!");
         const response = yield (0, requestUtils_1.retryTypedResponse)('getCacheEntry', () => __awaiter(this, void 0, void 0, function* () { return httpClient.getJson(getCacheApiUrl(resource)); }));
         // Cache not found
         if (response.statusCode === 204) {
             // List cache for primary key only if cache miss occurs
             if (core.isDebug()) {
-                yield printCachesListForDiagnostics(keys[0], httpClient, version, repo_id, owner_id);
+                yield printCachesListForDiagnostics(keys[0], httpClient, version);
             }
             return null;
         }
@@ -57999,9 +58001,9 @@ function getCacheEntry(keys, paths, repo_id, owner_id, options) {
     });
 }
 exports.getCacheEntry = getCacheEntry;
-function printCachesListForDiagnostics(key, httpClient, version, repo_id, owner_id) {
+function printCachesListForDiagnostics(key, httpClient, version) {
     return __awaiter(this, void 0, void 0, function* () {
-        const resource = `caches?key=${encodeURIComponent(key)}&repo_id=${repo_id}&owner_id=${owner_id}`;
+        const resource = `caches?key=${encodeURIComponent(key)}`;
         const response = yield (0, requestUtils_1.retryTypedResponse)('listCache', () => __awaiter(this, void 0, void 0, function* () { return httpClient.getJson(getCacheApiUrl(resource)); }));
         if (response.statusCode === 200) {
             const cacheListResult = response.result;
@@ -58015,7 +58017,7 @@ function printCachesListForDiagnostics(key, httpClient, version, repo_id, owner_
         }
     });
 }
-function downloadCache(archiveLocation, archivePath, repo_id, owner_id, options) {
+function downloadCache(archiveLocation, archivePath, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const archiveUrl = new url_1.URL(archiveLocation);
         const downloadOptions = (0, options_1.getDownloadOptions)(options);
@@ -58040,7 +58042,7 @@ function downloadCache(archiveLocation, archivePath, repo_id, owner_id, options)
 }
 exports.downloadCache = downloadCache;
 // Reserve Cache
-function reserveCache(key, paths, repo_id, owner_id, options) {
+function reserveCache(key, paths, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const httpClient = createHttpClient();
         const version = getCacheVersion(paths, options === null || options === void 0 ? void 0 : options.compressionMethod, options === null || options === void 0 ? void 0 : options.enableCrossOsArchive);
@@ -58050,7 +58052,7 @@ function reserveCache(key, paths, repo_id, owner_id, options) {
             cacheSize: options === null || options === void 0 ? void 0 : options.cacheSize
         };
         const response = yield (0, requestUtils_1.retryTypedResponse)('reserveCache', () => __awaiter(this, void 0, void 0, function* () {
-            return httpClient.postJson(getCacheApiUrl(`caches?repo_id=${repo_id}&owner_id=${owner_id}`), reserveCacheRequest);
+            return httpClient.postJson(getCacheApiUrl('caches'), reserveCacheRequest);
         }));
         return response;
     });
@@ -58079,11 +58081,11 @@ function uploadChunk(httpClient, resourceUrl, openStream, start, end) {
         }
     });
 }
-function uploadFile(httpClient, cacheId, archivePath, repo_id, owner_id, options) {
+function uploadFile(httpClient, cacheId, archivePath, options) {
     return __awaiter(this, void 0, void 0, function* () {
         // Upload Chunks
         const fileSize = utils.getArchiveFileSizeInBytes(archivePath);
-        const resourceUrl = getCacheApiUrl(`caches/${cacheId.toString()}?repo_id=${repo_id}&owner_id=${owner_id}`);
+        const resourceUrl = getCacheApiUrl(`caches/${cacheId.toString()}`);
         const fd = fs.openSync(archivePath, 'r');
         const uploadOptions = (0, options_1.getUploadOptions)(options);
         const concurrency = utils.assertDefined('uploadConcurrency', uploadOptions.uploadConcurrency);
@@ -58117,24 +58119,24 @@ function uploadFile(httpClient, cacheId, archivePath, repo_id, owner_id, options
         return;
     });
 }
-function commitCache(httpClient, cacheId, filesize, repo_id, owner_id) {
+function commitCache(httpClient, cacheId, filesize) {
     return __awaiter(this, void 0, void 0, function* () {
         const commitCacheRequest = { size: filesize };
         return yield (0, requestUtils_1.retryTypedResponse)('commitCache', () => __awaiter(this, void 0, void 0, function* () {
-            return httpClient.postJson(getCacheApiUrl(`caches/${cacheId.toString()}?repo_id=${repo_id}&owner_id=${owner_id}`), commitCacheRequest);
+            return httpClient.postJson(getCacheApiUrl(`caches/${cacheId.toString()}`), commitCacheRequest);
         }));
     });
 }
-function saveCache(cacheId, archivePath, repo_id, owner_id, options) {
+function saveCache(cacheId, archivePath, options) {
     return __awaiter(this, void 0, void 0, function* () {
         const httpClient = createHttpClient();
         core.debug('Upload cache');
-        yield uploadFile(httpClient, cacheId, archivePath, repo_id, owner_id, options);
+        yield uploadFile(httpClient, cacheId, archivePath, options);
         // Commit Cache
         core.debug('Commiting cache');
         const cacheSize = utils.getArchiveFileSizeInBytes(archivePath);
         core.info(`Cache Size: ~${Math.round(cacheSize / (1024 * 1024))} MB (${cacheSize} B)`);
-        const commitCacheResponse = yield commitCache(httpClient, cacheId, cacheSize, repo_id, owner_id);
+        const commitCacheResponse = yield commitCache(httpClient, cacheId, cacheSize);
         if (!(0, requestUtils_1.isSuccessStatusCode)(commitCacheResponse.statusCode)) {
             throw new Error(`Cache service responded with ${commitCacheResponse.statusCode} during commit cache.`);
         }
@@ -58451,6 +58453,7 @@ const utils = __importStar(__nccwpck_require__(4912));
 const constants_1 = __nccwpck_require__(3297);
 const requestUtils_1 = __nccwpck_require__(6751);
 const abort_controller_1 = __nccwpck_require__(2557);
+const cacheHttpClient_1 = __nccwpck_require__(9864);
 /**
  * Pipes the body of a HTTP response to a stream
  *
@@ -58573,7 +58576,8 @@ exports.DownloadProgress = DownloadProgress;
 function downloadCacheHttpClient(archiveLocation, archivePath) {
     return __awaiter(this, void 0, void 0, function* () {
         const writeStream = fs.createWriteStream(archivePath);
-        const httpClient = new http_client_1.HttpClient('actions/cache');
+        // const httpClient = new HttpClient('actions/cache')
+        const httpClient = (0, cacheHttpClient_1.createHttpClient)();
         const downloadResponse = yield (0, requestUtils_1.retryHttpClientResponse)('downloadCache', () => __awaiter(this, void 0, void 0, function* () { return httpClient.get(archiveLocation); }));
         // Abort download if no traffic received over the socket.
         downloadResponse.message.socket.setTimeout(constants_1.SocketTimeout, () => {
@@ -58592,6 +58596,9 @@ function downloadCacheHttpClient(archiveLocation, archivePath) {
         }
         else {
             core.debug('Unable to validate download, no Content-Length header');
+        }
+        if (httpClient != null) {
+            throw new Error(`This is downloadCacheHttpClient`);
         }
     });
 }
@@ -59427,9 +59434,7 @@ function restoreImpl(stateProvider) {
             const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
             const failOnCacheMiss = utils.getInputAsBool(constants_1.Inputs.FailOnCacheMiss);
             const lookupOnly = utils.getInputAsBool(constants_1.Inputs.LookupOnly);
-            const repo_id = process.env["ACTIONS_REPO_ID"];
-            const owner_id = process.env["ACTIONS_OWNER_ID"];
-            const cacheKey = yield cache.restoreCache(cachePaths, primaryKey, repo_id, owner_id, restoreKeys, { lookupOnly: lookupOnly }, enableCrossOsArchive);
+            const cacheKey = yield cache.restoreCache(cachePaths, primaryKey, restoreKeys, { lookupOnly: lookupOnly }, enableCrossOsArchive);
             if (!cacheKey) {
                 if (failOnCacheMiss) {
                     throw new Error(`Failed to restore cache entry. Exiting as fail-on-cache-miss is set. Input key: ${primaryKey}`);

