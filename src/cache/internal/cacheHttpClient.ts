@@ -114,7 +114,7 @@ export async function getCacheEntry(
   const resource = `cache?keys=${encodeURIComponent(
     keys.join(',')
   )}&version=${version}`
-
+  core.info("!!!!!!!!!!!!!!!!!!!!!!!!!")
   const response = await retryTypedResponse('getCacheEntry', async () =>
     httpClient.getJson<ArtifactCacheEntry>(getCacheApiUrl(resource))
   )
