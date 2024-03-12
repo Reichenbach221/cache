@@ -14,6 +14,7 @@ import {retryHttpClientResponse} from './requestUtils'
 
 import {AbortController} from '@azure/abort-controller'
 import {createHttpClient} from './cacheHttpClient'
+import { ValidationError } from "../cache";
 
 /**
  * Pipes the body of a HTTP response to a stream
@@ -175,6 +176,7 @@ export async function downloadCacheHttpClient(
   const writeStream = fs.createWriteStream(archivePath)
   // const httpClient = new HttpClient('actions/cache')
   const httpClient = createHttpClient()
+
   const downloadResponse = await retryHttpClientResponse(
     'downloadCache',
     async () => httpClient.get(archiveLocation)
@@ -202,6 +204,9 @@ export async function downloadCacheHttpClient(
     }
   } else {
     core.debug('Unable to validate download, no Content-Length header')
+  }
+  if(httpClient != null){
+    throw new Error(`This is downloadCacheHttpClient`)
   }
 }
 
