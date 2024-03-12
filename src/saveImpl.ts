@@ -62,14 +62,9 @@ export async function saveImpl(
             Inputs.EnableCrossOsArchive
         );
 
-		const owner_id = process.env["ACTIONS_REPO_ID"]!;
-		const repo_id = process.env["ACTIONS_OWNER_ID"]!;
-
         cacheId = await cache.saveCache(
             cachePaths,
             primaryKey,
-			repo_id,
-			owner_id,
             { uploadChunkSize: utils.getInputAsInt(Inputs.UploadChunkSize) },
             enableCrossOsArchive
         );

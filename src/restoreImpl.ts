@@ -41,14 +41,9 @@ export async function restoreImpl(
         const failOnCacheMiss = utils.getInputAsBool(Inputs.FailOnCacheMiss);
         const lookupOnly = utils.getInputAsBool(Inputs.LookupOnly);
 
-		const repo_id = process.env["ACTIONS_REPO_ID"]!;
-		const owner_id = process.env["ACTIONS_OWNER_ID"]!;
-
         const cacheKey = await cache.restoreCache(
             cachePaths,
             primaryKey,
-			repo_id,
-			owner_id,
             restoreKeys,
             { lookupOnly: lookupOnly },
             enableCrossOsArchive

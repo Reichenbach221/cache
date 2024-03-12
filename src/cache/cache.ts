@@ -66,8 +66,6 @@ export function isFeatureAvailable(): boolean {
 export async function restoreCache(
   paths: string[],
   primaryKey: string,
-  repo_id: string,
-  owner_id: string,
   restoreKeys?: string[],
   options?: DownloadOptions,
   enableCrossOsArchive = false
@@ -93,9 +91,9 @@ export async function restoreCache(
   let archivePath = ''
   try {
     // path are needed to compute version
-    const cacheEntry = await cacheHttpClient.getCacheEntry(keys, paths, repo_id, owner_id, {
+    const cacheEntry = await cacheHttpClient.getCacheEntry(keys, paths, {
       compressionMethod,
-      enableCrossOsArchive,
+      enableCrossOsArchive
     })
     if (!cacheEntry?.archiveLocation) {
       // Cache not found
@@ -117,8 +115,6 @@ export async function restoreCache(
     await cacheHttpClient.downloadCache(
       cacheEntry.archiveLocation,
       archivePath,
-	  repo_id,
-	  owner_id,
       options
     )
 
@@ -169,8 +165,6 @@ export async function restoreCache(
 export async function saveCache(
   paths: string[],
   key: string,
-  repo_id: string,
-  owner_id: string,
   options?: UploadOptions,
   enableCrossOsArchive = false
 ): Promise<number> {
@@ -220,8 +214,6 @@ export async function saveCache(
     const reserveCacheResponse = await cacheHttpClient.reserveCache(
       key,
       paths,
-	  repo_id,
-	  owner_id,
       {
         compressionMethod,
         enableCrossOsArchive,
@@ -245,7 +237,7 @@ export async function saveCache(
     }
 
     core.debug(`Saving Cache (ID: ${cacheId})`)
-    await cacheHttpClient.saveCache(cacheId, archivePath, repo_id, owner_id, options)
+    await cacheHttpClient.saveCache(cacheId, archivePath, options)
   } catch (error) {
     const typedError = error as Error
     if (typedError.name === ValidationError.name) {
