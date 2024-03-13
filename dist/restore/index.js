@@ -57975,7 +57975,6 @@ function getCacheEntry(keys, paths, options) {
         const httpClient = createHttpClient();
         const version = getCacheVersion(paths, options === null || options === void 0 ? void 0 : options.compressionMethod, options === null || options === void 0 ? void 0 : options.enableCrossOsArchive);
         const resource = `cache?keys=${encodeURIComponent(keys.join(','))}&version=${version}`;
-        core.info("!!!!!!!!!!!!!!!!!!!!!!!!!");
         const response = yield (0, requestUtils_1.retryTypedResponse)('getCacheEntry', () => __awaiter(this, void 0, void 0, function* () { return httpClient.getJson(getCacheApiUrl(resource)); }));
         // Cache not found
         if (response.statusCode === 204) {
@@ -58596,9 +58595,6 @@ function downloadCacheHttpClient(archiveLocation, archivePath) {
         }
         else {
             core.debug('Unable to validate download, no Content-Length header');
-        }
-        if (httpClient != null) {
-            throw new Error(`This is downloadCacheHttpClient`);
         }
     });
 }

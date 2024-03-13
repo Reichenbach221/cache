@@ -205,9 +205,6 @@ export async function downloadCacheHttpClient(
   } else {
     core.debug('Unable to validate download, no Content-Length header')
   }
-  if(httpClient != null){
-    throw new Error(`This is downloadCacheHttpClient`)
-  }
 }
 
 /**
